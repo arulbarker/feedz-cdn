@@ -23,6 +23,8 @@ const apiKey = "";
                 'feedbranding.brandname-ph': 'Nama brand (mis. Crystalin)',
                 'feedbranding.slogan-ph': 'Slogan (opsional)',
                 'feedbranding.price-ph': 'Harga (mis. Rp5.000)',
+                'feedbranding.testi-ph': 'Ulasan asli pelanggan (opsional)',
+                'feedbranding.facts-hint': 'Harga & ulasan kosong = AI tidak menulis angka harga, rating, atau kutipan pelanggan.',
                 'feedbranding.optional': '(Opsional)',
                 'fb.model-title': 'Model di Feed',
                 'fb.model-sub': 'Tampilkan orang di sebagian post (Cover, Testimoni, Cara Pakai). Sisanya tetap produk murni.',
@@ -100,6 +102,8 @@ const apiKey = "";
                 'feedbranding.brandname-ph': 'Brand name (e.g. Crystalin)',
                 'feedbranding.slogan-ph': 'Slogan (optional)',
                 'feedbranding.price-ph': 'Price (e.g. $5)',
+                'feedbranding.testi-ph': 'Real customer review (optional)',
+                'feedbranding.facts-hint': 'Empty price & review = AI writes no price, rating, or customer quote.',
                 'feedbranding.optional': '(Optional)',
                 'fb.model-title': 'Models in Feed',
                 'fb.model-sub': 'Show a person in some posts (Cover, Testimonial, How to Use). The rest stay product-only.',
@@ -281,6 +285,7 @@ const apiKey = "";
             const brandNameEl = document.getElementById('fb-brand-name');
             const sloganEl = document.getElementById('fb-slogan');
             const priceEl = document.getElementById('fb-price');
+            const testiEl = document.getElementById('fb-testimonial');
             const colorEl = document.getElementById('fb-accent-color');
             const hexEl = document.getElementById('fb-accent-hex');
             const color2El = document.getElementById('fb-accent2-color');
@@ -379,9 +384,9 @@ const apiKey = "";
             const FB_ROLES = [
                 { key: 'cover',     model: true,  role: "POST ROLE - HERO COVER: The scroll-stopping campaign cover. Render the product GIGANTIC in the center as the absolute hero, floating with dramatic spotlight and deep soft shadow. The brand name appears as a MASSIVE bold display headline layered creatively behind or above the product. Decorative elements themed to the product burst outward around it (splashes, particles, ingredients, light streaks). Maximum visual impact." },
                 { key: 'benefit',   model: false, role: "POST ROLE - BENEFITS: A bold benefits post, NOT clinical. Short punchy headline at top (e.g. why choose this brand). The product rendered LARGE on one side. Exactly 3 short benefit callouts as clean white rounded pill chips with small icons, visually connected to the product with thin lines or dots. Keep the same explosive brand background." },
-                { key: 'testimoni', model: true,  role: "POST ROLE - SOCIAL PROOF: A trust post with energy. A row of 5 large gold stars at top, one short enthusiastic customer quote in large elegant typography as the centerpiece, a '4.9/5' rating badge, and the product visible smaller at the bottom with its shadow. Same bold brand background, premium feel." },
+                { key: 'testimoni', model: true,  role: "POST ROLE - CUSTOMER VOICE: A warm community post inviting customers to share their experience, with the product visible at the bottom with its shadow. Same bold brand background, premium feel." },
                 { key: 'carapakai', model: true,  role: "POST ROLE - HOW TO USE: A dynamic 3-step guide. Bold short headline at top. Three numbered circular step badges (1, 2, 3) arranged diagonally or in a flow, each with a mini render of the product in use. Energetic but easy to scan. Same brand background system." },
-                { key: 'harga',     model: false, role: "POST ROLE - PRICE PROMO: A high-energy promo post. The price displayed HUGE inside a bold burst badge or ribbon as the focal point, with the product rendered large beside or below it. Promo urgency energy: bold shapes, exclamation accents. Same brand background system." },
+                { key: 'harga',     model: false, role: "POST ROLE - PRICE PROMO: A high-energy promo post with a bold burst badge or ribbon as the focal point, with the product rendered large beside or below it. Promo urgency energy: bold shapes, exclamation accents. Same brand background system." },
                 { key: 'cta',       model: false, role: "POST ROLE - CALL TO ACTION: The closing post. A bold action headline (order now / get yours), a button-shaped badge or arrow accent, the product as a confident hero with glow, brand name prominent. Strong urgency, same brand background system." }
             ];
             fbActiveRoles = FB_ROLES;
@@ -459,6 +464,24 @@ const apiKey = "";
                 return 'portrait 4:5';
             }
 
+            function fbFacts() {
+                return {
+                    price: priceEl.value.trim(),
+                    testi: testiEl ? testiEl.value.trim() : ''
+                };
+            }
+
+            function fbFactRules() {
+                const f = fbFacts();
+                const priceRule = f.price
+                    ? `PRICE: the ONLY price allowed anywhere is exactly "${f.price}" (copy it character by character). Never invent any other price, discount percentage, crossed-out price, bundle price or promo amount.`
+                    : `PRICE: NO price was provided. Do NOT write any price, currency symbol or amount anywhere (no "Rp", "$", "IDR", "K", "rb", "ribu", "%", "OFF", "diskon" numbers, no crossed-out prices, no promo amounts). Talk about the offer only with words, never numbers.`;
+                const testiRule = f.testi
+                    ? `REVIEWS: the ONLY customer review allowed is exactly this text: "${f.testi}". Never invent other quotes, customer names, star ratings, scores like 4.9/5, review counts or sales numbers.`
+                    : `REVIEWS: NO customer review was provided. Do NOT invent customer quotes, testimonials, customer names, star ratings, scores (such as 4.9/5 or 5/5), review counts, "thousands of reviews", sold counts or sales numbers.`;
+                return `FACTUAL HONESTY (strict, overrides everything else): ${priceRule} ${testiRule}`;
+            }
+
             function fbBuildBrief() {
                 const brand = brandNameEl.value.trim();
                 const slogan = sloganEl.value.trim();
@@ -483,7 +506,8 @@ ${taglineLine}
 - TYPOGRAPHY: bold condensed display headlines with very short punchy words, layered creatively with the product (in front/behind). Small clean supporting text only where needed. High contrast against the background.
 - DECORATIVE ELEMENTS: floating particles, splashes, shapes or ingredients that match the product theme, plus subtle glow and depth-of-field.
 - All visible text written in ${lang}, correctly spelled, minimal wording (3-6 words max per headline).${styleLine}${logoLine}
-- Overall vibe: high-end D2C brand campaign, energetic, saturated, cohesive, scroll-stopping.${contentType === 'carousel' ? ' This is a swipeable carousel — keep backgrounds and layout style continuous so adjacent slides feel like one flowing story.' : ''} Format: ${fbRatioWord()}.`;
+- Overall vibe: high-end D2C brand campaign, energetic, saturated, cohesive, scroll-stopping.${contentType === 'carousel' ? ' This is a swipeable carousel — keep backgrounds and layout style continuous so adjacent slides feel like one flowing story.' : ''} Format: ${fbRatioWord()}.
+- ${fbFactRules()}`;
             }
 
             function fbModelLine(roleObj) {
@@ -494,14 +518,28 @@ ${taglineLine}
                 return `\n\nHUMAN MODEL (this post only): Feature ONE photorealistic human model — ${who}. The model interacts with the product in the way that best fits this product type: WEARING it if it is apparel or a wearable, HOLDING or using it if it is handheld, otherwise posing beside it as a confident brand ambassador. The product must stay clearly visible, sharp and remain the focus. Keep the exact same brand background system, colors, typography and logo placement as the other posts. Natural lighting on the model, premium editorial campaign look.`;
             }
 
-            function fbRolePrompt(roleObj) {
-                const price = priceEl.value.trim();
-                let role = roleObj.role;
-                if (roleObj.key === 'harga') {
-                    role = price
-                        ? `POST ROLE - PRICE PROMO: A high-energy promo post. The price "${price}" displayed HUGE inside a bold burst badge or ribbon as the focal point, with the product rendered large beside or below it. Promo urgency energy: bold shapes, exclamation accents. Same brand background system.`
-                        : roleObj.role;
+            function fbPriceRole() {
+                const price = fbFacts().price;
+                if (price) return `POST ROLE - PRICE PROMO: A high-energy promo post. The price "${price}" displayed HUGE inside a bold burst badge or ribbon as the focal point (exactly "${price}", no other numbers), with the product rendered large beside or below it. Promo urgency energy: bold shapes, exclamation accents. Same brand background system.`;
+                const cta = window.tr('Cek Harga Spesialnya di Link Bio', 'Check Our Special Price — Link in Bio');
+                return `POST ROLE - SPECIAL OFFER TEASER (no price): A high-energy promo post WITHOUT any price or number. The headline "${cta}" displayed HUGE inside a bold burst badge or ribbon as the focal point, with the product rendered large beside or below it. Promo urgency energy: bold shapes, exclamation accents. Same brand background system. Absolutely no digits, currency or percentages anywhere in the image.`;
+            }
+
+            function fbTestiRole() {
+                const testi = fbFacts().testi;
+                if (testi) {
+                    const by = window.tr('Pelanggan Kami', 'Our Customer');
+                    return `POST ROLE - CUSTOMER REVIEW: A trust post with energy. This exact customer review as the centerpiece in large elegant typography inside big quotation marks: "${testi}" (copy word for word, do not shorten or rewrite), attributed simply to "${by}". The product visible smaller at the bottom with its shadow. No star ratings, no scores, no numbers, no customer names. Same bold brand background, premium feel.`;
                 }
+                const head = window.tr('Sudah Coba? Ceritakan Pengalamanmu!', 'Tried It? Share Your Story!');
+                return `POST ROLE - CUSTOMER VOICE (invitation): A warm community post that INVITES customers to share their experience. The headline "${head}" in large elegant typography as the centerpiece, with a speech-bubble or chat icon accent and the product visible at the bottom with its shadow. NO quotes from customers, NO star ratings, NO scores like 4.9/5, NO review counts, NO customer names. Same bold brand background, premium feel.`;
+            }
+
+            function fbRolePrompt(roleObj) {
+                const kind = roleObj.kind || roleObj.key;
+                let role = roleObj.role;
+                if (kind === 'harga') role = fbPriceRole();
+                if (kind === 'testimoni') role = fbTestiRole();
                 return `${fbBuildBrief()}
 
 ${role}${fbModelLine(roleObj)}
@@ -510,7 +548,7 @@ Premium social media advertising design, magazine-ad quality, ultra detailed, ${
             }
 
             function padRoles(n) {
-                return Array.from({ length: n }, (_, i) => ({ key: 'r' + (i + 1), model: i % 3 === 0, role: FB_ROLES[i % FB_ROLES.length].role }));
+                return Array.from({ length: n }, (_, i) => ({ key: 'r' + (i + 1), kind: FB_ROLES[i % FB_ROLES.length].key, model: i % 3 === 0, role: FB_ROLES[i % FB_ROLES.length].role }));
             }
 
             async function fbResolveRoles() {
@@ -539,7 +577,8 @@ Premium social media advertising design, magazine-ad quality, ultra detailed, ${
                 }
                 const systemPrompt = `You are a senior social media creative director. ${instruction}
 For each of the ${n} ${contentType === 'carousel' ? 'slides' : 'posts'} return: "label" = a very short 1-3 word ${contentType === 'carousel' ? 'slide' : 'post'} title written in ${lang}; "role" = one vivid English art-direction sentence starting with "${contentType === 'carousel' ? 'CAROUSEL SLIDE' : 'POST ROLE'} - <UPPERCASE NAME>:" describing what this single ${contentType === 'carousel' ? 'slide' : 'post'} shows, always rendering the product as the large hero; "withModel" = a boolean, set true for roughly one third to one half of the ${contentType === 'carousel' ? 'slides' : 'posts'} that would look natural with a real human model (e.g. cover, testimonial, how-to, lifestyle) and false for the rest (e.g. pure price/promo, plain CTA).
-Brand: "${brand}"${slogan ? `, tagline "${slogan}"` : ''}.`;
+Brand: "${brand}"${slogan ? `, tagline "${slogan}"` : ''}.
+${fbFactRules()} Never put invented numbers into "label" or "role".`;
                 try {
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
                     const parts = [{ text: 'Generate the 6-post angle list now.' }];
@@ -949,7 +988,7 @@ Brand: "${brand}"${slogan ? `, tagline "${slogan}"` : ''}.`;
                     captionBtn.innerHTML = `<div class="loader !w-4 !h-4 !border-2"></div>`;
                     try {
                         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-                        const sys = `You are a social media copywriter for the brand "${brand}". Write ONE single Instagram CAROUSEL caption in ${lang} for a carousel whose slides in order are: ${JSON.stringify(titles)}. The caption must open with a strong hook line (matching slide 1), briefly reflect the flow of the slides, end with a clear call to action, and finish with 5-8 relevant hashtags. Return JSON: {"caption": string, "hashtags": string}.`;
+                        const sys = `You are a social media copywriter for the brand "${brand}". Write ONE single Instagram CAROUSEL caption in ${lang} for a carousel whose slides in order are: ${JSON.stringify(titles)}. The caption must open with a strong hook line (matching slide 1), briefly reflect the flow of the slides, end with a clear call to action, and finish with 5-8 relevant hashtags. ${fbFactRules()} This applies to the caption AND the hashtags. Return JSON: {"caption": string, "hashtags": string}.`;
                         const payload = {
                             contents: [{ parts: [{ text: 'Write the carousel caption now.' }] }],
                             systemInstruction: { parts: [{ text: sys }] },
@@ -986,7 +1025,7 @@ Brand: "${brand}"${slogan ? `, tagline "${slogan}"` : ''}.`;
                 captionBtn.innerHTML = `<div class="loader !w-4 !h-4 !border-2"></div>`;
                 try {
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-                    const sys = `You are a social media copywriter for the brand "${brand}". For each post title, write a short engaging Instagram caption (1-2 sentences) in ${lang}, plus 5-8 relevant hashtags. Return a JSON array in the SAME order; each item: {"caption": string, "hashtags": string}.`;
+                    const sys = `You are a social media copywriter for the brand "${brand}". For each post title, write a short engaging Instagram caption (1-2 sentences) in ${lang}, plus 5-8 relevant hashtags. ${fbFactRules()} This applies to every caption AND hashtag. Return a JSON array in the SAME order; each item: {"caption": string, "hashtags": string}.`;
                     const payload = {
                         contents: [{ parts: [{ text: 'Post titles in order: ' + JSON.stringify(titles) }] }],
                         systemInstruction: { parts: [{ text: sys }] },
